@@ -1,4 +1,4 @@
-import chess
+import mcts_chess_random
 import chess.pgn
 import chess.svg
 import chess.engine
@@ -19,7 +19,7 @@ level = "easy"
 def app():
     class node():
         def __init__(self):
-            self.state = chess.Board()
+            self.state = board.Board()
             self.action = ''
             self.children = set()
             self.parent = None
@@ -61,7 +61,7 @@ def app():
         all_moves = [curr_node.state.san(i) for i in list(curr_node.state.legal_moves)]
         
         for i in all_moves:
-            tmp_state = chess.Board(curr_node.state.fen())
+            tmp_state = board.Board(curr_node.state.fen())
             tmp_state.push_san(i)
             child = node()
             child.state = tmp_state
@@ -116,7 +116,7 @@ def app():
         map_state_move = dict()
         
         for i in all_moves:
-            tmp_state = chess.Board(curr_node.state.fen())
+            tmp_state = board.Board(curr_node.state.fen())
             tmp_state.push_san(i)
             child = node()
             child.state = tmp_state
@@ -179,7 +179,7 @@ def app():
             return selected_move
 
     st.header("A Game of Chess using Monte Carlo Tree Search")
-    board = chess.Board()
+    board = board.Board()
     # png = svg2png(bytestring=chess.svg.board(board))
     p1 = st.empty()
     imageLocation = st.empty()
@@ -190,13 +190,13 @@ def app():
     # pil_img = Image.open(BytesIO(png)).convert('RGBA')
     # cv_img = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGBA2BGRA)
     # imageLocation.image(cv_img, caption='Initial pose', width=600)
-    svg = chess.svg.board(board)
+    svg = board.svg.board(board)
     imageLocation.markdown(f"<div style='text-align: center'>{svg}</div>", unsafe_allow_html=True)
 
     white = 1
     moves = 0
     pgn = []
-    game = chess.pgn.Game()
+    game = board.pgn.Game()
     evaluations = []
     sm = 0
     cnt = 0
@@ -240,7 +240,7 @@ def app():
         #     pil_img = Image.open(BytesIO(png)).convert('RGBA')
         #     cv_img = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGBA2BGRA)
         #     imageLocation.image(cv_img, caption="Move "+result,width=600)
-            svg = chess.svg.board(board)
+            svg = board.svg.board(board)
             imageLocation.markdown(f"<div style='text-align: center'>{svg}</div>", unsafe_allow_html=True)
 
 
