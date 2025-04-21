@@ -7,7 +7,7 @@ import random
 
 # === MCTS Logic ===
 class MCTSNode:
-    def __init__(self, board, parent=None, move=None):
+    def __init__(self, board, difficulty_level, parent=None, move=None):
         self.board = board
         self.parent = parent
         self.move = move
@@ -15,22 +15,23 @@ class MCTSNode:
         self.visits = 0
         self.wins = 0
         self.untried_moves = list(board.legal_moves)
+        self.difficulty_level = difficulty_level
 
     def is_fully_expanded(self):
         return len(self.untried_moves) == 0
 
-    def best_child(self, c_param=0.5):
+    def best_child(self):
         # Avoid division by zero
         return max(self.children, key=lambda child:
             (child.wins / child.visits if child.visits > 0 else 0) + 
-            c_param * math.sqrt(math.log(self.visits) / child.visits if child.visits > 0 else 0)
+            self.difficulty_level * math.sqrt(math.log(self.visits) / child.visits if child.visits > 0 else 0)
         ) if self.children else None
 
     def expand(self):
         move = self.untried_moves.pop()
         next_board = self.board.copy()
         next_board.push(move)
-        child = MCTSNode(next_board, parent=self, move=move)
+        child = MCTSNode(next_board, self.difficulty_level, parent=self, move=move)
         self.children.append(child)
         return child
 
@@ -53,13 +54,13 @@ def simulate_random_game(board):
     return 0.5  # Draw
 
 def mcts(board, iter_limit=1000, c_param=1.4):
-    root = MCTSNode(board)
+    root = MCTSNode(board, c_param)
     
     for _ in range(iter_limit):
         # Selection
         node = root
         while node.is_fully_expanded() and node.children:
-            node = node.best_child(c_param)
+            node = node.best_child()
             if node is None:  # Safety check
                 break
                 
@@ -101,17 +102,19 @@ class ChessGUI:
         self.root = root
         self.root.title("Chess with MCTS AI")
         self.board = chess.Board()
-        self.square_size = 160  # Smaller squares to fit settings panel
+        self.square_size = 80  # Smaller squares to fit settings panel
         
         # Game state
         self.player_color = chess.WHITE  # Default player color
         self.difficulty_level = "Medium"  # Default difficulty
         self.selected_square = None
-        self.difficulty_iterations = {
-            "Easy": 100,
-            "Medium": 500,
-            "Hard": 1000
+        # Thay đổi tên và giá trị:
+        self.difficulty_cparams = {
+            "Easy": 0.1,
+            "Medium": 0.5,
+            "Hard": 1.0
         }
+
         
         # Main frame
         self.main_frame = tk.Frame(root)
@@ -297,19 +300,23 @@ class ChessGUI:
                 self.draw_board()
 
     def ai_move(self):
+        """Let the AI make a move using MCTS"""
         if self.board.is_game_over():
-            self.update_status()
             return
-            
-        # Update status to show AI is thinking
-        self.status_label.config(text="AI thinking...")
-        self.root.update()
+
+        # 🟡 Lấy hệ số c_param dựa theo độ khó
+        c_param = self.difficulty_cparams.get(self.difficulty_level, 0.5)
+
+        # 🟡 Thực hiện tìm nước đi với độ khó bằng c_param
+        move = mcts(self.board, iter_limit=1000, c_param=c_param)
         
-        # Use MCTS with iterations based on difficulty
-        iterations = self.difficulty_iterations[self.difficulty_level]
-        move = mcts(self.board, iter_limit=iterations)
-        self.board.push(move)
-        self.draw_board()
+        if move:
+            self.board.push(move)
+            self.draw_board()
+            
+            if not self.board.is_game_over() and self.board.turn != self.player_color:
+                self.root.after(100, self.ai_move)
+
 
 # === Run GUI ===
 if __name__ == "__main__":

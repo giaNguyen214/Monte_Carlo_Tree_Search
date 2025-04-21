@@ -9,7 +9,7 @@ from functools import lru_cache
 
 # === Enhanced MCTS Logic with optimizations ===
 class MCTSNode:
-    def __init__(self, board, parent=None, move=None):
+    def __init__(self, board, difficulty, parent=None, move=None):
         self.board = board
         self.parent = parent
         self.move = move
@@ -19,6 +19,8 @@ class MCTSNode:
         self.untried_moves = list(board.legal_moves)
         # Prioritize checking, capturing and center control moves
         self.prioritize_moves()
+        
+        self.difficulty = difficulty
         
     def prioritize_moves(self):
         """Sort moves to check promising ones first"""
@@ -54,7 +56,7 @@ class MCTSNode:
     def is_fully_expanded(self):
         return len(self.untried_moves) == 0
 
-    def best_child(self, c_param=1.4):
+    def best_child(self):
         if not self.children:
             return None
             
@@ -71,7 +73,7 @@ class MCTSNode:
             win_rate = child.wins / child.visits
             
             # Exploration component
-            exploration = c_param * math.sqrt(math.log(self.visits) / child.visits)
+            exploration = self.difficulty * math.sqrt(math.log(self.visits) / child.visits)
             
             # Combined score
             score = win_rate + exploration
@@ -89,7 +91,7 @@ class MCTSNode:
         move = self.untried_moves.pop(0)  # Get first (highest priority) move
         next_board = self.board.copy()
         next_board.push(move)
-        child = MCTSNode(next_board, parent=self, move=move)
+        child = MCTSNode(next_board, self.difficulty, parent=self, move=move)
         self.children.append(child)
         return child
 
@@ -211,8 +213,8 @@ def simulate_smart_game(board):
         return 1 if not board.turn else 0  # If it's black's turn, white won
     return 0.5  # Draw
 
-def mcts(board, iter_limit=1000, time_limit=5.0, c_param=1.4):
-    root = MCTSNode(board)
+def mcts(board, iter_limit=1000, time_limit=20.0, c_param=1.4):
+    root = MCTSNode(board, c_param)
     start_time = time.time()
     iterations = 0
     
@@ -221,7 +223,7 @@ def mcts(board, iter_limit=1000, time_limit=5.0, c_param=1.4):
         # Selection
         node = root
         while node.is_fully_expanded() and node.children:
-            node = node.best_child(c_param)
+            node = node.best_child()
             if node is None:  # Safety check
                 break
                 
@@ -267,7 +269,7 @@ class ChessGUI:
         self.root = root
         self.root.title("Chess with Enhanced MCTS AI")
         self.board = chess.Board()
-        self.square_size = 160  # Smaller squares to fit settings panel
+        self.square_size = 80  # Smaller squares to fit settings panel
         
         # Game state
         self.player_color = chess.WHITE  # Default player color
@@ -286,6 +288,18 @@ class ChessGUI:
             "Easy": 0.5,  # seconds
             "Medium": 1.5,
             "Hard": 3.0
+        }
+        
+        self.difficulty_cparams = {
+            "Easy": 0.1,
+            "Medium": 0.5,
+            "Hard": 1.0
+        }
+        
+        self.difficulty_time = {
+            "Easy": 5,
+            "Medium": 30,
+            "Hard": 45
         }
         
         # Main frame
@@ -648,7 +662,9 @@ class ChessGUI:
         
         # Adjust parameters based on speed
         adjusted_iterations = max(int(base_iterations * (1 - speed_factor * 0.9)), 10)
-        adjusted_time = max(base_time * (1 - speed_factor * 0.9), 0.1)  # Minimum time 0.1s
+        
+        time_limit = self.difficulty_time.get(self.difficulty_level, 5.0)
+        adjusted_time = max(time_limit, 0.1)  # Minimum time 0.1s
         
         # Start AI thinking in a separate thread
         threading.Thread(target=self.process_ai_move, 
@@ -659,7 +675,8 @@ class ChessGUI:
         start_time = time.time()
         
         # Use enhanced MCTS with time and iteration limits
-        move = mcts(self.board, iter_limit=iterations, time_limit=time_limit)
+        c_param = self.difficulty_cparams.get(self.difficulty_level, 0.5)
+        move = mcts(self.board, c_param=c_param, iter_limit=iterations, time_limit=time_limit)
         
         # Calculate thinking time
         thinking_time = time.time() - start_time
