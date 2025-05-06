@@ -107,11 +107,11 @@ def get_piece_value(piece):
         
     piece_values = {
         chess.PAWN: 2,
-        chess.KNIGHT: 4.2, 
-        chess.BISHOP: 4.3,
-        chess.ROOK: 7,
-        chess.QUEEN: 11,
-        chess.KING: 100
+        chess.KNIGHT: 6, 
+        chess.BISHOP: 6,
+        chess.ROOK: 10,
+        chess.QUEEN: 18,
+        chess.KING: 0
     }
     return piece_values[piece.piece_type]
 
@@ -217,7 +217,7 @@ def simulate_smart_game(board):
     # Determine result
     if temp.is_checkmate():
         return 100 if temp.turn == board.turn else -100  
-    return evaluate_position(temp.fen()) if board.turn == chess.BLACK  else - evaluate_position(temp.fen())  # Draw
+    return evaluate_position(temp.fen()) if board.turn == chess.BLACK  else - evaluate_position(temp.fen())  
 
 def mcts(board, iter_limit=1000, time_limit=20.0, c_param=1.4):
     root = MCTSNode(board, c_param)
@@ -225,7 +225,7 @@ def mcts(board, iter_limit=1000, time_limit=20.0, c_param=1.4):
     iterations = 0
     
     # Use either iteration limit or time limit
-    while iterations < iter_limit:
+    while iterations < len(list(board.legal_moves))**iter_limit:
         # Selection
         node = root
         while node.is_fully_expanded() and node.children:
@@ -286,9 +286,9 @@ class ChessGUI:
         
         # AI parameters
         self.difficulty_iterations = {
-            "Easy": 1000,
-            "Medium": 1800,
-            "Hard": 2500
+            "Easy": 1.5,
+            "Medium": 1.8,
+            "Hard": 2.1
         }
         self.difficulty_time_limits = {
             "Easy": 0.5,  # seconds
@@ -297,9 +297,9 @@ class ChessGUI:
         }
         
         self.difficulty_cparams = {
-            "Easy": 1,
-            "Medium": 1.44,
-            "Hard": 2
+            "Easy": 1.44,
+            "Medium": 2,
+            "Hard": 2.44
         }
         
         self.difficulty_time = {
@@ -667,7 +667,7 @@ class ChessGUI:
         speed_factor = self.ai_speed / 100  # Convert percentage to factor
         
         # Adjust parameters based on speed
-        adjusted_iterations = max(int(base_iterations * (1 - speed_factor * 0.9)), 10)
+        adjusted_iterations = base_iterations
         
         time_limit = self.difficulty_time.get(self.difficulty_level, 5.0)
         adjusted_time = max(time_limit, 0.1)  # Minimum time 0.1s
