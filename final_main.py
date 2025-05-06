@@ -175,46 +175,6 @@ def evaluate_position(board_fen):
 def simulate_smart_game(board):
     """Smarter simulation that uses basic evaluation"""
     temp = board.copy()
-    moves = 0
-    max_moves = 0  # Prevent infinite games
-    
-    while not temp.is_game_over() and moves < max_moves:
-        # If less than 3 legal moves, evaluate all
-        legal_moves = list(temp.legal_moves)
-        if not legal_moves:
-            break
-            
-        if len(legal_moves) >= 2:  # 70% chance of making a smart move
-            # Smart move selection
-            best_score = float('-inf')
-            best_move = None
-            
-            for move in legal_moves:
-                board_copy = temp.copy()
-                board_copy.push(move)
-                score = evaluate_position(board_copy.fen())
-                # Adjust score for perspective
-                if temp.turn == chess.BLACK:
-                    score = -score
-                    
-                if score > best_score:
-                    best_score = score
-                    best_move = move
-            
-            temp.push(best_move)
-        else:
-            pass
-            # Sometimes play randomly to add variety
-            move = random.choice(legal_moves)
-            temp.push(move)
-            score = evaluate_position(temp.fen())
-            if temp.turn == chess.BLACK:
-                score = -score
-            best_score = score
-            
-        moves += 1
-    
-    # Determine result
     if temp.is_checkmate():
         return 100 if temp.turn == board.turn else -100  
     return evaluate_position(temp.fen()) if board.turn == chess.BLACK  else - evaluate_position(temp.fen())  
